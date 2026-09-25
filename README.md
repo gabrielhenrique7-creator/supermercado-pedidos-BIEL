@@ -45,3 +45,4 @@ npm start
 - Substitua preços e produtos demonstrativos.
 - Configure a área real de entrega e os horários. A interface está definida sem taxa de entrega.
 - Use Node.js 22+ no provedor de hospedagem.
+ 
