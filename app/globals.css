@@ -11,3 +11,5 @@
 @media(max-width:980px){.hero-video-grid{inset:85px 12% 70px}.hero-video-frame video{height:380px}}
 @media(max-width:640px){.hero-video-grid{inset:90px 5% 55px;gap:10px}.hero-video-frame{border-width:3px;box-shadow:7px 8px 0 rgba(255,224,0,.22)}.hero-video-frame video{height:280px}.hero-video-frame figcaption{font-size:14px;padding:8px 6px}.hero-video-frame.video-two{margin-top:45px}.location-card{align-items:flex-start}.location-card>a{flex:none}.delivery-map>small{max-width:76%}}
 .hero-video-frame figcaption{padding:9px 8px;font-size:16px;line-height:1.05;letter-spacing:-.2px;white-space:normal}
+.hero-sticker{top:24px;bottom:auto;left:5%;padding:9px 14px}
+@media(max-width:640px){.hero-sticker{top:14px;left:4%;padding:7px 10px}.hero-sticker b{font-size:20px}}
