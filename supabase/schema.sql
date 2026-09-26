@@ -217,6 +217,34 @@ $$;
 revoke all on function public.place_order(text,text,text,text,text,jsonb) from public, anon, authenticated;
 grant execute on function public.place_order(text,text,text,text,text,jsonb) to service_role;
 
+-- Ao excluir um pedido de teste, devolve suas quantidades ao estoque antes do cascade.
+create or replace function private.restore_order_stock_before_delete()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  update public.products as product
+  set stock = product.stock + purchased.quantity,
+      updated_at = now()
+  from (
+    select product_id, sum(quantity)::integer as quantity
+    from public.order_items
+    where order_id = old.id and product_id is not null
+    group by product_id
+  ) as purchased
+  where product.id = purchased.product_id;
+  return old;
+end;
+$$;
+
+revoke all on function private.restore_order_stock_before_delete() from public, anon, authenticated;
+drop trigger if exists restore_order_stock_before_delete on public.orders;
+create trigger restore_order_stock_before_delete
+before delete on public.orders
+for each row execute function private.restore_order_stock_before_delete();
+
 -- Fotos públicas; somente administradores autenticados podem enviar ou alterar.
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('product-images', 'product-images', true, 5242880, array['image/jpeg','image/png','image/webp'])
