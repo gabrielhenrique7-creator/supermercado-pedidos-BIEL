@@ -14,7 +14,7 @@ npm run dev
 
 Abra `http://localhost:3000`. O painel fica em `http://localhost:3000/admin`.
 
-Sem Supabase configurado, a aplicação entra em modo demonstração e guarda alterações no `localStorage` do navegador. Nesse modo, loja e painel devem ser abertos no mesmo navegador; abas abertas atualizam entre si. Preencha as variáveis de `.env.local` para ativar autenticação Supabase. Nunca coloque uma `service_role` ou secret key em variáveis `NEXT_PUBLIC_*`.
+Sem Supabase configurado, a loja não exibe produtos e o painel fica bloqueado para evitar dados de demonstração em produção. Preencha as variáveis de `.env.local` para ativar autenticação e pedidos reais. Nunca coloque uma `service_role` ou secret key em variáveis `NEXT_PUBLIC_*`.
 
 ## Supabase
 
@@ -22,13 +22,13 @@ Sem Supabase configurado, a aplicação entra em modo demonstração e guarda al
 2. Execute o SQL de `supabase/schema.sql` pelo SQL Editor.
 3. Crie o usuário administrador em Authentication > Users.
 4. Adicione o `id` desse usuário à tabela `admin_users`.
-5. Preencha `.env.local` com a Project URL e a Publishable key.
+5. Preencha `.env.local` com a Project URL, a Publishable key e a Secret key. Use também `SUPABASE_URL` no ambiente do servidor.
 
 O esquema aplica RLS em todas as tabelas públicas: qualquer visitante pode ler produtos ativos e somente IDs presentes em `admin_users` podem acessar ou alterar a operação. Ele também cria o bucket `product-images`, com leitura pública e escrita restrita aos administradores.
 
 O plano Free é suficiente para começar: 500 MB de banco por projeto, 1 GB de arquivos, 5 GB de egress não armazenado em cache, 5 GB em cache, 50 mil usuários ativos/mês, 2 milhões de mensagens Realtime/mês e até dois projetos ativos. Projetos gratuitos com pouca atividade podem ser pausados depois de aproximadamente sete dias; basta reativá-los no painel. Confira os limites atuais antes da publicação, pois o provedor pode alterá-los.
 
-> A interface completa funciona em demonstração. Para pedidos compartilhados entre aparelhos pela internet, a próxima etapa é conectar o projeto Supabase e ativar o endpoint transacional de pedidos; não exponha uma chave secreta no navegador.
+> O endpoint transacional usa `SUPABASE_URL` e `SUPABASE_SECRET_KEY` apenas no servidor. A chave secreta nunca pode ser enviada ao navegador.
 
 ## Comandos
 
@@ -45,4 +45,3 @@ npm start
 - Substitua preços e produtos demonstrativos.
 - Configure a área real de entrega e os horários. A interface está definida sem taxa de entrega.
 - Use Node.js 22+ no provedor de hospedagem.
- 

@@ -37,6 +37,10 @@ export async function POST(request: Request) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Não foi possível registrar o pedido.";
     const unavailable = message.includes("não configurado");
-    return Response.json({ error: unavailable ? "A conexão segura do banco ainda não foi finalizada." : message }, { status: unavailable ? 503 : 400 });
+    console.error("Falha ao registrar pedido", error);
+    return Response.json(
+      { error: unavailable ? "A conexão segura do banco ainda não foi finalizada." : "Não foi possível registrar o pedido. Confira os itens e tente novamente." },
+      { status: unavailable ? 503 : 400 },
+    );
   }
 }

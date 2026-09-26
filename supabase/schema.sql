@@ -130,7 +130,7 @@ create policy "admins insert customers" on public.customers for insert to authen
 create policy "admins update customers" on public.customers for update to authenticated using ((select private.is_admin())) with check ((select private.is_admin()));
 create policy "admins delete customers" on public.customers for delete to authenticated using ((select private.is_admin()));
 
-create policy "public reads active products" on public.products for select to anon, authenticated using (active = true);
+create policy "public reads active products" on public.products for select to anon using (active = true);
 create policy "admins read all products" on public.products for select to authenticated using ((select private.is_admin()));
 create policy "admins insert products" on public.products for insert to authenticated with check ((select private.is_admin()));
 create policy "admins update products" on public.products for update to authenticated using ((select private.is_admin())) with check ((select private.is_admin()));
@@ -147,6 +147,7 @@ create policy "admins update order items" on public.order_items for update to au
 create policy "admins delete order items" on public.order_items for delete to authenticated using ((select private.is_admin()));
 
 create index if not exists order_items_order_id_idx on public.order_items(order_id);
+create index if not exists order_items_product_id_idx on public.order_items(product_id);
 create index if not exists orders_customer_id_idx on public.orders(customer_id);
 create index if not exists customers_updated_at_idx on public.customers(updated_at desc);
 create index if not exists orders_created_at_idx on public.orders(created_at desc);
