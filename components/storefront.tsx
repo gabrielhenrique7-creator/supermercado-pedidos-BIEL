@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Check, ChevronRight, Clock3, MapPin, Menu, Minus, PackageCheck, Plus, Search, ShoppingBag, X, Zap } from "lucide-react";
 import { BrandMark } from "./brand-mark";
-import { defaultProducts } from "@/lib/demo-data";
 import { LOCAL_STORE_UPDATED, localStore } from "@/lib/local-store";
 import type { CartItem, Category, Order, Product } from "@/lib/types";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
@@ -13,7 +12,7 @@ const categories: Array<"Todos" | Category> = ["Todos", "Cervejas", "Destilados"
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 export function Storefront() {
-  const [products, setProducts] = useState<Product[]>(defaultProducts);
+  const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [category, setCategory] = useState<(typeof categories)[number]>("Todos");
   const [query, setQuery] = useState("");
@@ -29,7 +28,8 @@ export function Storefront() {
   const configured = isSupabaseConfigured();
 
   useEffect(() => {
-    let interval: number | undefined;
+    let orderInterval: number | undefined;
+    let productInterval: number | undefined;
     async function refreshTrackedOrders() {
       if (!configured) return;
       const stored = localStore.getOrders();
@@ -46,16 +46,26 @@ export function Storefront() {
       if (configured) {
         const { data } = await createClient().from("products").select("id,name,description,image_url,price,old_price,category,badge,emoji,active,stock").eq("active", true).order("created_at");
         if (data) setProducts(data.map((product) => ({ id: product.id, name: product.name, description: product.description, imageUrl: product.image_url ?? undefined, price: Number(product.price), oldPrice: product.old_price === null ? undefined : Number(product.old_price), category: product.category as Category, badge: product.badge ?? undefined, emoji: product.emoji, active: product.active, stock: product.stock })));
-      } else setProducts(localStore.getProducts().filter((product) => product.active));
+      } else setProducts([]);
       setOrders(localStore.getOrders().filter((order) => Boolean(order.items)));
       const savedCustomer = localStore.getCustomers().sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))[0];
       if (savedCustomer) setCustomerForm({ customer: savedCustomer.name, phone: savedCustomer.phone, address: savedCustomer.address });
     };
     const frame = window.requestAnimationFrame(() => { void refresh(); });
-    if (configured) { void refreshTrackedOrders(); interval = window.setInterval(() => void refreshTrackedOrders(), 15_000); }
+    if (configured) {
+      void refreshTrackedOrders();
+      orderInterval = window.setInterval(() => void refreshTrackedOrders(), 15_000);
+      productInterval = window.setInterval(() => void refresh(), 30_000);
+    }
     window.addEventListener("storage", refresh);
     window.addEventListener(LOCAL_STORE_UPDATED, refresh);
-    return () => { window.cancelAnimationFrame(frame); if (interval) window.clearInterval(interval); window.removeEventListener("storage", refresh); window.removeEventListener(LOCAL_STORE_UPDATED, refresh); };
+    return () => {
+      window.cancelAnimationFrame(frame);
+      if (orderInterval) window.clearInterval(orderInterval);
+      if (productInterval) window.clearInterval(productInterval);
+      window.removeEventListener("storage", refresh);
+      window.removeEventListener(LOCAL_STORE_UPDATED, refresh);
+    };
   }, [configured]);
 
   const visible = useMemo(() => products.filter((product) => {
@@ -155,16 +165,17 @@ export function Storefront() {
           <p className="hero-text">Bebida gelada, gelo e aquela mistura que faltou. Você chama, a G leva.</p>
           <div className="location-card">
             <MapPin aria-hidden="true" />
-            <div><small>Entregamos em</small><strong>Gonçalves Dias — MA</strong></div>
+            <div><small>Estamos localizados</small><strong>Mercadinho Pinheiro</strong><span>Tv. Nereu Ramos — Gonçalves Dias, MA</span></div>
             <a href="#produtos" aria-label="Ver produtos"><ArrowRight /></a>
           </div>
           <div className="hero-proof"><span><b>20–45</b><small>minutos*</small></span><i /><span><b>Gelada</b><small>de verdade</small></span><i /><span><b>Todo dia</b><small>até mais tarde</small></span></div>
         </div>
-        <div className="hero-art" aria-label="Composição ilustrada de bebidas geladas">
+        <div className="hero-art" aria-label="Cervejas geladas e brinde">
           <div className="sun-word">GELADA</div>
-          <div className="can can-one"><span>G</span><small>PILSEN</small></div>
-          <div className="can can-two"><span>G</span><small>LAGER</small></div>
-          <div className="ice ice-one">◆</div><div className="ice ice-two">◆</div>
+          <div className="hero-video-grid">
+            <figure className="hero-video-frame video-one"><video autoPlay muted loop playsInline preload="metadata" aria-label="Garrafa de cerveja na areia"><source src="/videos/cerveja-na-praia.mp4" type="video/mp4" /></video><figcaption>Do mercado para a sua resenha</figcaption></figure>
+            <figure className="hero-video-frame video-two"><video autoPlay muted loop playsInline preload="metadata" aria-label="Brinde com cerveja"><source src="/videos/brinde-de-cerveja.mp4" type="video/mp4" /></video><figcaption>Gelada, do jeito certo</figcaption></figure>
+          </div>
           <div className="burst">ABRIU<br />A RESENHA?</div>
           <div className="hero-sticker">chega<br /><b>trincando</b></div>
         </div>
@@ -183,7 +194,7 @@ export function Storefront() {
             <div className={`product-visual ${product.imageUrl ? "has-photo" : ""}`} style={product.imageUrl ? { backgroundImage: `url(${product.imageUrl})` } : undefined}><span aria-hidden="true">{product.imageUrl ? "" : product.emoji}</span>{product.badge && <b>{product.badge}</b>}</div>
             <div className="product-info"><small>{product.category} • {product.stock} disponíveis</small><h3>{product.name}</h3>{product.description && <p>{product.description}</p>}<div className="price-line"><span>{product.oldPrice && product.oldPrice > product.price && <><del>{money.format(product.oldPrice)}</del><em>{Math.round((1 - product.price / product.oldPrice) * 100)}% OFF</em></>}<strong>{money.format(product.price)}</strong></span><button onClick={() => add(product)} disabled={product.stock === 0} aria-label={`Adicionar ${product.name}`}><Plus /></button></div></div>
           </article>
-        ))}</div> : <div className="empty-state"><span>🧊</span><h3>Nada por aqui ainda.</h3><p>Tente outra busca ou categoria.</p></div>}
+        ))}</div> : <div className="empty-state"><span>🧊</span><h3>Cardápio em atualização.</h3><p>Os produtos reais aparecerão aqui assim que forem cadastrados pelo lojista.</p></div>}
       </section>
 
       <section className="my-orders" id="meus-pedidos">
@@ -201,8 +212,8 @@ export function Storefront() {
       </section>
 
       <section className="delivery-section" id="entrega">
-        <div className="delivery-map"><div className="map-ring ring-one" /><div className="map-ring ring-two" /><MapPin size={66} fill="currentColor" /><span>CENTRO</span><small>e bairros atendidos</small></div>
-        <div><p className="eyebrow">Da cidade. Pra cidade.</p><h2>A G CONHECE<br />O CAMINHO.</h2><p>Atendimento local em Gonçalves Dias, sem taxa de entrega. A previsão é atualizada no andamento do pedido.</p><a href="#produtos" className="primary-cta">Pedir agora <ChevronRight /></a></div>
+        <div className="delivery-map"><div className="map-ring ring-one" /><div className="map-ring ring-two" /><MapPin size={66} fill="currentColor" /><span>MERCADINHO<br />PINHEIRO</span><small>Tv. Nereu Ramos • Gonçalves Dias — MA</small></div>
+        <div><p className="eyebrow">Estamos localizados</p><h2>MERCADINHO<br />PINHEIRO.</h2><p>Estamos na Tv. Nereu Ramos, em Gonçalves Dias — MA. Fazemos entrega local sem taxa, com a previsão atualizada no andamento do pedido.</p><a href="#produtos" className="primary-cta">Pedir agora <ChevronRight /></a></div>
       </section>
 
       <footer><BrandMark compact /><p>Beba com moderação. Venda proibida para menores de 18 anos.</p><div><a href="#produtos">Cardápio</a><Link href="/admin">Área do lojista</Link></div></footer>
