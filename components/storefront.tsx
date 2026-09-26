@@ -20,6 +20,7 @@ export function Storefront() {
   const [checkout, setCheckout] = useState(false);
   const [ordered, setOrdered] = useState(false);
   const [lastOrder, setLastOrder] = useState<Order | null>(null);
+  const [whatsappOrderUrl, setWhatsappOrderUrl] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -138,7 +139,9 @@ export function Storefront() {
     if (phone) {
       const paymentMessage = payment === "Pix" ? "Pagamento por Pix — aguardo a chave/QR para pagar e enviar o comprovante." : `${payment} — pagamento no recebimento.`;
       const message = `Olá! Pedido ${order.id}: ${items}. Total ${money.format(order.total)}. Entrega: ${order.address}. ${paymentMessage}`;
-      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+      setWhatsappOrderUrl(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`);
+    } else {
+      setWhatsappOrderUrl("");
     }
     setLastOrder(order);
     setOrdered(true);
@@ -220,7 +223,7 @@ export function Storefront() {
 
       {cartOpen && <div className="drawer-layer" role="presentation"><button className="drawer-backdrop" aria-label="Fechar sacola" onClick={() => setCartOpen(false)} /><aside className="cart-drawer" aria-label="Sua sacola">
         <div className="drawer-header"><div><small>Sua compra</small><h2>{checkout ? "FINALIZAR" : "SACOLA"}</h2></div><button onClick={() => { setCartOpen(false); setCheckout(false); setOrdered(false); }} aria-label="Fechar"><X /></button></div>
-        {ordered ? <div className="order-success"><span><Check /></span><h3>Pedido enviado!</h3><p>{lastOrder?.payment === "Pix" ? "O WhatsApp da loja foi aberto. Envie a mensagem, aguarde a chave ou QR Pix e depois mande o comprovante. O dono confirmará o pagamento no painel." : "Seu pedido foi registrado com pagamento na entrega. O WhatsApp da loja foi aberto para você enviar a confirmação."}</p><button className="primary-cta" onClick={() => { setCartOpen(false); setOrdered(false); setCheckout(false); }}>Continuar comprando</button></div> : checkout ? <form className="checkout-form" onSubmit={finishOrder}>
+        {ordered ? <div className="order-success"><span><Check /></span><h3>Pedido enviado!</h3><p>{lastOrder?.payment === "Pix" ? "Seu pedido foi registrado. Abra o WhatsApp, envie a mensagem pronta, aguarde a chave ou QR Pix e depois mande o comprovante. O dono confirmará o pagamento no painel." : "Seu pedido foi registrado com pagamento na entrega. Abra o WhatsApp e envie a mensagem pronta para confirmar com a loja."}</p>{whatsappOrderUrl && <a className="primary-cta" href={whatsappOrderUrl} target="_blank" rel="noreferrer">Abrir WhatsApp e enviar <ArrowRight /></a>}<button className="text-button" onClick={() => { setCartOpen(false); setOrdered(false); setCheckout(false); setWhatsappOrderUrl(""); }}>Continuar comprando</button></div> : checkout ? <form className="checkout-form" onSubmit={finishOrder}>
           <label>Seu nome<input name="customer" required minLength={2} value={customerForm.customer} onChange={(event) => setCustomerForm({ ...customerForm, customer: event.target.value })} placeholder="Como podemos chamar você?" /></label>
           <label>WhatsApp<input name="phone" required inputMode="tel" value={customerForm.phone} onChange={(event) => setCustomerForm({ ...customerForm, phone: event.target.value })} placeholder="(99) 99999-9999" /></label>
           <label>Endereço completo<textarea name="address" required minLength={8} value={customerForm.address} onChange={(event) => setCustomerForm({ ...customerForm, address: event.target.value })} placeholder="Rua, número, bairro e referência" /></label>
