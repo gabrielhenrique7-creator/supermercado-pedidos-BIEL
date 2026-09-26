@@ -217,7 +217,68 @@ $$;
 revoke all on function public.place_order(text,text,text,text,text,jsonb) from public, anon, authenticated;
 grant execute on function public.place_order(text,text,text,text,text,jsonb) to service_role;
 
--- Ao excluir um pedido de teste, devolve suas quantidades ao estoque antes do cascade.
+-- Mantém o estoque correto quando um pedido é cancelado ou reaberto.
+create or replace function private.sync_order_stock_on_status_change()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_expected integer;
+  v_updated integer;
+begin
+  if old.status <> 'Cancelado' and new.status = 'Cancelado' then
+    update public.products as product
+    set stock = product.stock + purchased.quantity,
+        updated_at = now()
+    from (
+      select product_id, sum(quantity)::integer as quantity
+      from public.order_items
+      where order_id = old.id and product_id is not null
+      group by product_id
+    ) as purchased
+    where product.id = purchased.product_id;
+  elsif old.status = 'Cancelado' and new.status <> 'Cancelado' then
+    select count(*)::integer
+    into v_expected
+    from (
+      select product_id
+      from public.order_items
+      where order_id = old.id and product_id is not null
+      group by product_id
+    ) as purchased;
+
+    update public.products as product
+    set stock = product.stock - purchased.quantity,
+        updated_at = now()
+    from (
+      select product_id, sum(quantity)::integer as quantity
+      from public.order_items
+      where order_id = old.id and product_id is not null
+      group by product_id
+    ) as purchased
+    where product.id = purchased.product_id
+      and product.stock >= purchased.quantity;
+
+    get diagnostics v_updated = row_count;
+    if v_updated <> v_expected then
+      raise exception 'Estoque insuficiente para reabrir este pedido.';
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+revoke all on function private.sync_order_stock_on_status_change() from public, anon, authenticated;
+drop trigger if exists sync_order_stock_on_status_change on public.orders;
+create trigger sync_order_stock_on_status_change
+before update of status on public.orders
+for each row execute function private.sync_order_stock_on_status_change();
+
+-- Ao excluir um pedido de teste, devolve suas quantidades antes do cascade.
+-- Um pedido já cancelado não é devolvido outra vez.
 create or replace function private.restore_order_stock_before_delete()
 returns trigger
 language plpgsql
@@ -225,16 +286,18 @@ security definer
 set search_path = ''
 as $$
 begin
-  update public.products as product
-  set stock = product.stock + purchased.quantity,
-      updated_at = now()
-  from (
-    select product_id, sum(quantity)::integer as quantity
-    from public.order_items
-    where order_id = old.id and product_id is not null
-    group by product_id
-  ) as purchased
-  where product.id = purchased.product_id;
+  if old.status <> 'Cancelado' then
+    update public.products as product
+    set stock = product.stock + purchased.quantity,
+        updated_at = now()
+    from (
+      select product_id, sum(quantity)::integer as quantity
+      from public.order_items
+      where order_id = old.id and product_id is not null
+      group by product_id
+    ) as purchased
+    where product.id = purchased.product_id;
+  end if;
   return old;
 end;
 $$;

@@ -172,7 +172,11 @@ export function AdminDashboard() {
     if (editingOrder.status !== updated.status && (editingOrder.status === "Cancelado" || updated.status === "Cancelado")) {
       const restoring = updated.status === "Cancelado";
       const quantities = new Map(updated.items?.map((item) => [item.productId, item.quantity]) ?? []);
-      const nextProducts = products.map((product) => ({ ...product, stock: Math.max(0, product.stock + (restoring ? 1 : -1) * (quantities.get(product.id) ?? 0)) }));
+      if (!restoring && products.some((product) => product.stock < (quantities.get(product.id) ?? 0))) {
+        window.alert("Não há estoque suficiente para reabrir este pedido.");
+        return;
+      }
+      const nextProducts = products.map((product) => ({ ...product, stock: product.stock + (restoring ? 1 : -1) * (quantities.get(product.id) ?? 0) }));
       setProducts(nextProducts); localStore.saveProducts(nextProducts);
     }
     setOrders(next); localStore.saveOrders(next); setEditingOrder(null); notifySaved();
@@ -187,7 +191,9 @@ export function AdminDashboard() {
       await loadRemoteData();
     } else {
       const quantities = new Map(order.items?.map((item) => [item.productId, item.quantity]) ?? []);
-      const nextProducts = products.map((product) => ({ ...product, stock: product.stock + (quantities.get(product.id) ?? 0) }));
+      const nextProducts = order.status === "Cancelado"
+        ? products
+        : products.map((product) => ({ ...product, stock: product.stock + (quantities.get(product.id) ?? 0) }));
       setProducts(nextProducts); localStore.saveProducts(nextProducts);
       const nextOrders = orders.filter((item) => item.id !== order.id);
       setOrders(nextOrders); localStore.saveOrders(nextOrders);
