@@ -7,6 +7,7 @@ import { BrandMark } from "./brand-mark";
 import { localStore } from "@/lib/local-store";
 import type { Category, Customer, Order, Product } from "@/lib/types";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import type { User } from "@supabase/supabase-js";
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const categories: Category[] = ["Cervejas", "Destilados", "Sem álcool", "Gelo & extras"];
@@ -44,6 +45,7 @@ export function AdminDashboard() {
   const [saved, setSaved] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [accountMessage, setAccountMessage] = useState("");
+  const [initialPasswordRequired, setInitialPasswordRequired] = useState(false);
   const configured = isSupabaseConfigured();
 
   const loadRemoteData = useCallback(async () => {
@@ -62,13 +64,44 @@ export function AdminDashboard() {
   useEffect(() => {
     if (!configured) return;
     const client = createClient();
-    void client.auth.getUser().then(async ({ data }) => {
-      if (!data.user) return;
-      setUserEmail(data.user.email ?? "");
-      const { data: membership } = await client.from("admin_users").select("user_id").eq("user_id", data.user.id).maybeSingle();
-      setAuthenticated(Boolean(membership));
-      if (membership) await loadRemoteData();
+    let active = true;
+    let handledUserId = "";
+
+    const authorize = async (user: User) => {
+      if (!active || handledUserId === user.id) return;
+      handledUserId = user.id;
+      setUserEmail(user.email ?? "");
+      const { data: membership } = await client.from("admin_users").select("user_id").eq("user_id", user.id).maybeSingle();
+      if (!active) return;
+      if (!membership) {
+        await client.auth.signOut();
+        setAuthError("Esta conta não tem permissão de administrador.");
+        return;
+      }
+
+      const query = new URLSearchParams(window.location.search);
+      const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const isFirstAccess = query.get("setup") === "1" || fragment.get("type") === "invite";
+      if (isFirstAccess) {
+        setInitialPasswordRequired(true);
+        return;
+      }
+
+      setAuthenticated(true);
+      await loadRemoteData();
+    };
+
+    void client.auth.getUser().then(({ data }) => {
+      if (data.user) void authorize(data.user);
     });
+    const { data: authListener } = client.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) window.setTimeout(() => void authorize(session.user), 0);
+    });
+
+    return () => {
+      active = false;
+      authListener.subscription.unsubscribe();
+    };
   }, [configured, loadRemoteData]);
 
   useEffect(() => {
@@ -218,6 +251,24 @@ export function AdminDashboard() {
     notifySaved();
   }
 
+  async function completeFirstAccess(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setAuthError("");
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const password = String(data.get("password"));
+    const confirmation = String(data.get("confirmation"));
+    if (password.length < 8) { setAuthError("A senha precisa ter pelo menos 8 caracteres."); return; }
+    if (password !== confirmation) { setAuthError("As duas senhas não são iguais."); return; }
+    const { error } = await createClient().auth.updateUser({ password });
+    if (error) { setAuthError(`Não foi possível criar a senha: ${error.message}`); return; }
+    window.history.replaceState({}, "", "/admin");
+    setInitialPasswordRequired(false);
+    setAuthenticated(true);
+    form.reset();
+    await loadRemoteData();
+  }
+
   const paidOrders = useMemo(() => orders.filter((order) => order.paymentStatus === "Pago" && order.status !== "Cancelado"), [orders]);
   const todayKey = businessDateKey(new Date());
   const weekly = useMemo(() => Array.from({ length: 7 }, (_, index) => {
@@ -230,6 +281,8 @@ export function AdminDashboard() {
   const maxWeek = Math.max(...weekly.map((day) => day.value), 1);
   const sortedOrders = useMemo(() => [...orders].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)), [orders]);
   const tabTitle: Record<Tab, string> = { overview: "VISÃO GERAL", products: "PRODUTOS", orders: "PEDIDOS", customers: "CLIENTES", account: "CONTA" };
+
+  if (initialPasswordRequired) return <main className="admin-login"><section><Link href="/"><BrandMark /></Link><div className="login-copy"><p className="eyebrow">Primeiro acesso</p><h1>CRIE SUA<br />SENHA.</h1><p>Escolha a senha que será usada para entrar no painel da loja.</p></div><form onSubmit={completeFirstAccess}><p>Conta autorizada: <strong>{userEmail}</strong></p><label>Nova senha<input name="password" type="password" minLength={8} autoComplete="new-password" required /></label><label>Confirmar nova senha<input name="confirmation" type="password" minLength={8} autoComplete="new-password" required /></label>{authError && <p className="form-error">{authError}</p>}<button className="checkout-button" type="submit"><KeyRound /> Salvar senha e entrar</button></form></section><div className="login-art"><span>G</span><small>PRIMEIRO<br />ACESSO</small></div></main>;
 
   if (!authenticated) return <main className="admin-login"><section><Link href="/"><BrandMark /></Link><div className="login-copy"><p className="eyebrow">Área reservada</p><h1>CONTROLE<br />DO CORRE.</h1><p>Produtos, promoções e vendas em um só lugar.</p></div><form onSubmit={login}>{configured ? <><label>E-mail<input name="email" type="email" autoComplete="email" required /></label><label>Senha<input name="password" type="password" autoComplete="current-password" required /></label></> : <div className="demo-banner"><b>Configuração pendente</b><span>As variáveis do Supabase precisam ser adicionadas na Vercel. Nenhum dado de demonstração será exibido.</span></div>}{authError && <p className="form-error">{authError}</p>}<button className="checkout-button" type="submit" disabled={!configured}>{configured ? "Entrar no painel" : "Conecte o Supabase para continuar"}</button><Link href="/" className="back-link"><ArrowLeft /> Voltar para a loja</Link></form></section><div className="login-art"><span>G</span><small>DONO DO<br />PRÓPRIO CORRE</small></div></main>;
 
