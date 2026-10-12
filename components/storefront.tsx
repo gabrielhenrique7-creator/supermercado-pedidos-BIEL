@@ -12,34 +12,19 @@ const categories: Array<"Todos" | Category> = ["Todos", "Cervejas", "Destilados"
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 function buildOrderWhatsAppMessage(order: Order) {
-  const itemLines = order.items?.map((item) => `• ${item.quantity}x ${item.name}`) ?? [];
-  const paymentLine = order.payment === "Pix"
-    ? "Pix — aguardo a chave ou QR Code para pagar e enviar o comprovante."
-    : `${order.payment} — pagamento no recebimento.`;
+  const itemLines = order.items?.map((item) => `${item.name} - ${item.quantity} un. - *${money.format(item.unitPrice * item.quantity)}*`) ?? [];
+  const observationLines = order.customerNote ? [`Observação: *${order.customerNote}*`, ""] : [];
 
   return [
-    "🛒 *NOVO PEDIDO*",
-    `*Código:* ${order.id}`,
-    "",
-    "👤 *CLIENTE*",
-    `*Nome:* ${order.customer}`,
-    `*WhatsApp:* ${order.phone}`,
-    "",
-    "📦 *ITENS*",
+    "*Cliente*",
+    `Nome: *${order.customer}*`,
+    `Endereço: *${order.address}*`,
+    `Forma de Pagamento: *${order.payment}*`,
+    ...observationLines,
+    "*Produtos*",
     ...itemLines,
     "",
-    "📍 *ENTREGA*",
-    order.address,
-    "*Taxa:* Grátis",
-    "",
-    "💳 *PAGAMENTO*",
-    paymentLine,
-    "",
-    "📝 *OBSERVAÇÕES*",
-    order.customerNote || "Nenhuma observação.",
-    "",
-    "💰 *TOTAL*",
-    `*${money.format(order.total)}*`,
+    `*Total do Pedido:* ${money.format(order.total)}`,
   ].join("\n");
 }
 
