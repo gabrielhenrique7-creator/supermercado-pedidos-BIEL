@@ -11,6 +11,38 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 const categories: Array<"Todos" | Category> = ["Todos", "Cervejas", "Destilados", "Sem álcool", "Gelo & extras"];
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
+function buildOrderWhatsAppMessage(order: Order) {
+  const itemLines = order.items?.map((item) => `• ${item.quantity}x ${item.name}`) ?? [];
+  const paymentLine = order.payment === "Pix"
+    ? "Pix — aguardo a chave ou QR Code para pagar e enviar o comprovante."
+    : `${order.payment} — pagamento no recebimento.`;
+
+  return [
+    "🛒 *NOVO PEDIDO*",
+    `*Código:* ${order.id}`,
+    "",
+    "👤 *CLIENTE*",
+    `*Nome:* ${order.customer}`,
+    `*WhatsApp:* ${order.phone}`,
+    "",
+    "📦 *ITENS*",
+    ...itemLines,
+    "",
+    "📍 *ENTREGA*",
+    order.address,
+    "*Taxa:* Grátis",
+    "",
+    "💳 *PAGAMENTO*",
+    paymentLine,
+    "",
+    "📝 *OBSERVAÇÕES*",
+    order.customerNote || "Nenhuma observação.",
+    "",
+    "💰 *TOTAL*",
+    `*${money.format(order.total)}*`,
+  ].join("\n");
+}
+
 export function Storefront() {
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -134,11 +166,9 @@ export function Storefront() {
       const purchased = new Map(cart.map((item) => [item.id, item.quantity]));
       localStore.saveProducts(localStore.getProducts().map((product) => ({ ...product, stock: Math.max(0, product.stock - (purchased.get(product.id) ?? 0)) })));
     }
-    const items = cart.map((item) => `${item.quantity}x ${item.name}`).join(", ");
     const phone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
     if (phone) {
-      const paymentMessage = payment === "Pix" ? "Pagamento por Pix — aguardo a chave/QR para pagar e enviar o comprovante." : `${payment} — pagamento no recebimento.`;
-      const message = `Olá! Pedido ${order.id}: ${items}. Total ${money.format(order.total)}. Entrega: ${order.address}. ${paymentMessage}`;
+      const message = buildOrderWhatsAppMessage(order);
       setWhatsappOrderUrl(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`);
     } else {
       setWhatsappOrderUrl("");
