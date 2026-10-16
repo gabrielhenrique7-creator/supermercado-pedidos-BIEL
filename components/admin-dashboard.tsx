@@ -10,7 +10,7 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-const categories: Category[] = ["Cervejas", "Destilados", "Sem álcool", "Gelo & extras", "Carnes"];
+const categories: Category[] = ["Cervejas", "Destilados", "Sem álcool", "Gelo & extras", "Churrasco"];
 type Tab = "overview" | "products" | "orders" | "customers" | "account";
 const BUSINESS_TIME_ZONE = "America/Fortaleza";
 

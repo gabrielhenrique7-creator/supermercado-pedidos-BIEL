@@ -22,7 +22,7 @@ create table if not exists public.products (
   image_url text,
   price numeric(10,2) not null check (price >= 0),
   old_price numeric(10,2) check (old_price is null or old_price >= price),
-  category text not null check (category in ('Cervejas','Destilados','Sem álcool','Gelo & extras','Carnes')),
+  category text not null check (category in ('Cervejas','Destilados','Sem álcool','Gelo & extras','Churrasco')),
   badge text,
   emoji text not null default '🍻',
   active boolean not null default true,
@@ -66,7 +66,7 @@ alter table public.orders add column if not exists delivery_note text check (del
 alter table public.orders add column if not exists customer_note text check (customer_note is null or char_length(customer_note) <= 500);
 
 alter table public.products drop constraint if exists products_category_check;
-alter table public.products add constraint products_category_check check (category in ('Cervejas','Destilados','Sem álcool','Gelo & extras','Carnes'));
+alter table public.products add constraint products_category_check check (category in ('Cervejas','Destilados','Sem álcool','Gelo & extras','Churrasco'));
 alter table public.orders add column if not exists updated_at timestamptz not null default now();
 alter table public.orders add column if not exists payment_status text not null default 'Aguardando pagamento';
 update public.orders

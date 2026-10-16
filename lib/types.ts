@@ -1,4 +1,4 @@
-export type Category = "Cervejas" | "Destilados" | "Sem álcool" | "Gelo & extras" | "Carnes";
+export type Category = "Cervejas" | "Destilados" | "Sem álcool" | "Gelo & extras" | "Churrasco";
 
 export type Product = {
   id: string;

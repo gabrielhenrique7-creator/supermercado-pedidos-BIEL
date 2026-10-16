@@ -8,7 +8,7 @@ import { LOCAL_STORE_UPDATED, localStore } from "@/lib/local-store";
 import type { CartItem, Category, Order, Product } from "@/lib/types";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 
-const categories: Array<"Todos" | Category> = ["Todos", "Cervejas", "Destilados", "Sem álcool", "Gelo & extras", "Carnes"];
+const categories: Array<"Todos" | Category> = ["Todos", "Cervejas", "Destilados", "Sem álcool", "Gelo & extras", "Churrasco"];
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 function buildOrderWhatsAppMessage(order: Order) {

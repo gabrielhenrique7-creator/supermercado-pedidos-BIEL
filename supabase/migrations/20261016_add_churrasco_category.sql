@@ -3,4 +3,4 @@ alter table public.products
 
 alter table public.products
   add constraint products_category_check
-  check (category in ('Cervejas', 'Destilados', 'Sem álcool', 'Gelo & extras', 'Carnes'));
+  check (category in ('Cervejas', 'Destilados', 'Sem álcool', 'Gelo & extras', 'Churrasco'));
