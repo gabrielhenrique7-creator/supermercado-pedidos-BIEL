@@ -165,6 +165,7 @@ export function Storefront() {
 
   return (
     <main>
+      <a className="creator-jump" href="#crie-seu-site">Também quer um site para o seu negócio? <span>Conheça nosso trabalho</span> <ArrowRight /></a>
       <header className="site-header">
         <Link href="/" aria-label="Página inicial"><BrandMark /></Link>
         <nav className={menuOpen ? "nav-open" : ""} aria-label="Navegação principal">
@@ -234,7 +235,7 @@ export function Storefront() {
         <div><p className="eyebrow">Estamos localizados</p><h2>MERCADINHO<br />PINHEIRO.</h2><p>Estamos na Tv. Nereu Ramos, em Gonçalves Dias — MA. Fazemos entrega local sem taxa, com a previsão atualizada no andamento do pedido.</p><a href="#produtos" className="primary-cta">Pedir agora <ChevronRight /></a></div>
       </section>
 
-      <section className="creator-promo" aria-label="Criação de sites">
+      <section className="creator-promo" id="crie-seu-site" aria-label="Criação de sites">
         <div><p className="eyebrow">Projeto e presença digital</p><h2>SEU NEGÓCIO TAMBÉM<br />PODE ESTAR ONLINE.</h2></div>
         <div className="creator-promo-content">
           <p>Sites sob medida para vender, atender e apresentar seu trabalho com identidade própria.</p>
