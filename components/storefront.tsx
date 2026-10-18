@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Check, ChevronRight, Clock3, MapPin, Menu, Minus, PackageCheck, Plus, Search, ShoppingBag, X, Zap } from "lucide-react";
+import { ArrowRight, Check, ChevronLeft, ChevronRight, Clock3, MapPin, Menu, Minus, PackageCheck, Plus, Search, ShoppingBag, X, Zap } from "lucide-react";
 import { BrandMark } from "./brand-mark";
 import { LOCAL_STORE_UPDATED, localStore } from "@/lib/local-store";
 import type { CartItem, Category, Order, Product } from "@/lib/types";
@@ -30,6 +30,7 @@ function buildOrderWhatsAppMessage(order: Order) {
 
 export function Storefront() {
   const [products, setProducts] = useState<Product[]>([]);
+  const productRailRef = useRef<HTMLDivElement>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [category, setCategory] = useState<(typeof categories)[number]>("Todos");
   const [query, setQuery] = useState("");
@@ -91,6 +92,14 @@ export function Storefront() {
     const queryMatches = `${product.name} ${product.description ?? ""}`.toLowerCase().includes(query.toLowerCase());
     return categoryMatches && queryMatches;
   }), [products, category, query]);
+
+  function scrollProducts(direction: -1 | 1) {
+    const rail = productRailRef.current;
+    const card = rail?.querySelector<HTMLElement>(".product-card");
+    if (!rail || !card) return;
+    const gap = Number.parseFloat(window.getComputedStyle(rail).columnGap || window.getComputedStyle(rail).gap) || 18;
+    rail.scrollBy({ left: direction * (card.offsetWidth + gap) * 2, behavior: "smooth" });
+  }
 
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const total = cart.reduce((sum, item) => sum + Math.round(item.price * 100) * item.quantity, 0) / 100;
@@ -207,12 +216,12 @@ export function Storefront() {
           <label className="search"><Search size={18} /><span className="sr-only">Buscar produtos</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar no cardápio" /></label>
         </div>
         <div className="category-row" role="group" aria-label="Categorias">{categories.map((item) => <button key={item} className={category === item ? "active" : ""} onClick={() => setCategory(item)}>{item}</button>)}</div>
-        {visible.length ? <div className="product-grid">{visible.map((product, index) => (
+        {visible.length ? <div className="product-carousel"><button className="product-scroll-button previous" type="button" onClick={() => scrollProducts(-1)} aria-label="Ver produtos anteriores"><ChevronLeft /></button><div className="product-grid" ref={productRailRef}>{visible.map((product, index) => (
           <article className={`product-card card-${index % 4}`} key={product.id}>
             <div className={`product-visual ${product.imageUrl ? "has-photo" : ""}`} style={product.imageUrl ? { backgroundImage: `url(${product.imageUrl})` } : undefined}><span aria-hidden="true">{product.imageUrl ? "" : product.emoji}</span>{product.badge && <b>{product.badge}</b>}</div>
             <div className="product-info"><small>{product.category} • {product.stock} disponíveis</small><h3>{product.name}</h3>{product.description && <p>{product.description}</p>}<div className="price-line"><span>{product.oldPrice && product.oldPrice > product.price && <><del>{money.format(product.oldPrice)}</del><em>{Math.round((1 - product.price / product.oldPrice) * 100)}% OFF</em></>}<strong>{money.format(product.price)}</strong></span><button onClick={() => add(product)} disabled={product.stock === 0} aria-label={`Adicionar ${product.name}`}><Plus /></button></div></div>
           </article>
-        ))}</div> : <div className="empty-state"><span>🧊</span><h3>Cardápio em atualização.</h3><p>Os produtos reais aparecerão aqui assim que forem cadastrados pelo lojista.</p></div>}
+        ))}</div><button className="product-scroll-button next" type="button" onClick={() => scrollProducts(1)} aria-label="Ver próximos produtos"><ChevronRight /></button></div> : <div className="empty-state"><span>🧊</span><h3>Cardápio em atualização.</h3><p>Os produtos reais aparecerão aqui assim que forem cadastrados pelo lojista.</p></div>}
       </section>
 
       <section className="my-orders" id="meus-pedidos">
@@ -233,6 +242,8 @@ export function Storefront() {
         <div className="delivery-map"><div className="map-ring ring-one" /><div className="map-ring ring-two" /><MapPin size={66} fill="currentColor" /><span>MERCADINHO<br />PINHEIRO</span><small>Tv. Nereu Ramos • Gonçalves Dias — MA</small></div>
         <div><p className="eyebrow">Estamos localizados</p><h2>MERCADINHO<br />PINHEIRO.</h2><p>Estamos na Tv. Nereu Ramos, em Gonçalves Dias — MA. Fazemos entrega local sem taxa, com a previsão atualizada no andamento do pedido.</p><a href="#produtos" className="primary-cta">Pedir agora <ChevronRight /></a></div>
       </section>
+
+      <section className="creator-promo" aria-label="Criação de sites"><div><p className="eyebrow">Projeto e presença digital</p><h2>SEU NEGÓCIO TAMBÉM<br />PODE ESTAR ONLINE.</h2></div><div><p>Sites para delivery, mercados, lojas, restaurantes e serviços, com identidade própria e painel de gestão.</p><strong>Gabriel Henrique • Sites sob medida</strong></div></section>
 
       <footer><BrandMark compact /><p>Beba com moderação. Venda proibida para menores de 18 anos.</p><div><a href="#produtos">Cardápio</a><Link href="/admin">Área do lojista</Link></div></footer>
 
