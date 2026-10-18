@@ -238,7 +238,7 @@ export function Storefront() {
         <div><p className="eyebrow">Projeto e presença digital</p><h2>SEU NEGÓCIO TAMBÉM<br />PODE ESTAR ONLINE.</h2></div>
         <div className="creator-promo-content">
           <p>Sites sob medida para vender, atender e apresentar seu trabalho com identidade própria.</p>
-          <ul aria-label="Tipos de sites"><li>Delivery</li><li>Mercados e lojas</li><li>Restaurantes</li><li>Fisioterapia</li><li>Nutrição</li><li>Finanças</li><li>Serviços locais</li></ul>
+          <ul aria-label="Setores atendidos"><li>Alimentação e delivery</li><li>Comércio e varejo</li><li>Saúde e bem-estar</li><li>Direito e contabilidade</li><li>Finanças e consultoria</li><li>Serviços profissionais</li></ul>
           <a href="https://wa.me/5599985354941?text=Ol%C3%A1%2C%20Gabriel!%20Vi%20seu%20trabalho%20no%20site%20do%20Mercadinho%20Pinheiro%20e%20quero%20conversar%20sobre%20um%20site%20para%20o%20meu%20neg%C3%B3cio." target="_blank" rel="noreferrer" className="creator-contact">Falar sobre meu site <ArrowRight /></a>
           <strong>Gabriel Henrique • (99) 98535-4941</strong>
         </div>
